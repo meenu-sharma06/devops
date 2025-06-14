@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://github.com/meenu-sharma06/devops.git'
+        INDEX_AWS = 'index-aws.html'
+        INDEX_AZURE = 'index-azure.html'
+        AWS_HOSTS = 'ubuntu@44.212.61.7 ubuntu@44.192.132.217'
+        AZURE_HOSTS = 'azureuser@20.121.189.209 azureuser@172.178.71.108'
+        AWS_KEY = '/var/lib/jenkins/.ssh/meenu-key1.pem'
+        AZURE_KEY = '/var/lib/jenkins/.ssh/meenu-azure.pem'
+    }
+
+    stages {
+        stage('Clone GitHub Repo') {
+            steps {
+                git branch: 'main', url: 'https://github.com/meenu-sharma06/devops.git'
+            }
+        }
+
+        stage('Deploy to AWS VMs') {
+            steps {
+                script {
+                    env.AWS_HOSTS.split().each { host ->
+                        sh """
+                        scp -i ${env.AWS_KEY} ${env.INDEX_AWS} ${host}:/var/www/html/index.html
+                        ssh -i ${env.AWS_KEY} ${host} 'sudo systemctl restart nginx'
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Azure VMs') {
+            steps {
+                script {
+                    env.AZURE_HOSTS.split().each { host ->
+                        sh """
+                        scp -i ${env.AZURE_KEY} ${env.INDEX_AZURE} ${host}:/var/www/html/index.html
+                        ssh -i ${env.AZURE_KEY} ${host} 'sudo systemctl restart nginx'
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Nginx index files deployed successfully.'
+        }
+        failure {
+            echo 'Something went wrong with the deployment.'
+        }
+    }
+}

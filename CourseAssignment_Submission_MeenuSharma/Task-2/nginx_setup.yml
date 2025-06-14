@@ -1,0 +1,31 @@
+---
+- name: Install and configure Nginx on all web servers
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Update APT package cache (Ubuntu)
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure Nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Verify Nginx is running
+      shell: systemctl is-active nginx
+      register: nginx_status
+      changed_when: false
+
+    - name: Show Nginx running status
+      debug:
+        msg: "Nginx status: {{ nginx_status.stdout }}"
